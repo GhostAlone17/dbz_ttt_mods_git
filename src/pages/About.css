@@ -1,0 +1,157 @@
+.about-page {
+  padding: 4rem 1.5rem 5rem;
+  width: 100%;
+  max-width: 100vw;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.about-container {
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.about-header {
+  margin-bottom: 4rem;
+  text-align: center;
+}
+
+.about-logo {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--accent);
+  margin: 0 auto 1.5rem;
+  display: block;
+  box-shadow: 0 0 20px rgba(230, 25, 25, 0.3);
+}
+
+.about-header h2 {
+  font-size: 3rem;
+  font-weight: 900;
+  margin-bottom: 1rem;
+}
+
+.about-header p {
+  color: var(--text-muted);
+  font-size: 1.2rem;
+}
+
+.about-main-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3rem;
+  font-size: 1.1rem;
+  line-height: 1.8;
+  box-sizing: border-box;
+}
+
+.about-section-title {
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.5rem;
+}
+
+.about-text {
+  color: var(--text-muted);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  margin-bottom: 2rem;
+}
+
+.about-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-top: 3rem;
+  box-sizing: border-box;
+}
+
+.about-info-card {
+  background: var(--bg-main);
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  transition: 0.2s;
+  box-sizing: border-box;
+}
+
+.about-info-card:hover {
+  border-color: #333;
+  transform: translateY(-2px);
+}
+
+.about-info-card h4 {
+  margin-bottom: 0.8rem;
+  font-size: 1.1rem;
+  color: var(--text-main);
+}
+
+.about-info-card p {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.about-cta {
+  margin-top: 4rem;
+  text-align: center;
+}
+
+.about-youtube-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 1rem 2rem;
+  background: var(--accent);
+  color: #fff;
+  text-decoration: none;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  transition: 0.2s;
+  white-space: nowrap;
+}
+
+.about-youtube-btn:hover {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+  .about-page {
+    padding: 2rem 1rem 3rem;
+  }
+
+  .about-main-card {
+    padding: 2rem 1.5rem;
+    font-size: 1rem;
+  }
+
+  .about-header h2 {
+    font-size: 2rem;
+  }
+
+  .about-header p {
+    font-size: 1rem;
+  }
+
+  .about-info-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .about-logo {
+    width: 100px;
+    height: 100px;
+  }
+}
