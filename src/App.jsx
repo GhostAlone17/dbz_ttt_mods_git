@@ -11,8 +11,9 @@ import Footer from './components/Footer';
 import './index.css';
 
 function App() {
+  const basename = import.meta.env.BASE_URL.replace(/\/$/, '');
   return (
-    <Router>
+    <Router basename={basename}>
       <div className="min-h-screen">
         <Navbar />
         <main>
