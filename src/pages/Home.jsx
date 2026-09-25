@@ -35,16 +35,16 @@ const Home = () => {
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
         
-        const loadMods = async () => {
+        const loadMods = async (silent = false) => {
             try {
-                setLoading(true);
+                if (!silent) setLoading(true);
                 const data = await fetchMods();
-                setMods(data);
+                setMods(prev => (JSON.stringify(prev) === JSON.stringify(data) ? prev : data));
             } catch (err) {
                 console.error('Fallo crítico al conectar:', err);
-                setMods([]);
+                if (!silent) setMods([]);
             } finally {
-                setLoading(false);
+                if (!silent) setLoading(false);
             }
         };
 
@@ -52,12 +52,18 @@ const Home = () => {
 
         // Refresco al volver a la pestaña (sustituye al realtime de Supabase)
         const handleVisibility = () => {
-            if (document.visibilityState === 'visible') loadMods();
+            if (document.visibilityState === 'visible') loadMods(true);
         };
         document.addEventListener('visibilitychange', handleVisibility);
 
+        // Publica los cambios en cuanto Actions termina (~30-40 s), sin recargar
+        const poll = setInterval(() => {
+            if (document.visibilityState === 'visible') loadMods(true);
+        }, 20000);
+
         return () => {
             document.removeEventListener('visibilitychange', handleVisibility);
+            clearInterval(poll);
         };
     }, []);
 

@@ -151,6 +151,16 @@ function withLock(task) {
 }
 
 export async function fetchMods() {
+  // Panel con token: lee directo del repo (siempre al día, sin esperar al deploy)
+  if (hasGithubToken()) {
+    try {
+      const { mods } = await readDataset();
+      return mods.map(resolveMod);
+    } catch (err) {
+      console.warn('GitHub no disponible, usando el JSON publicado:', err.message);
+    }
+  }
+
   try {
     const res = await fetch(`${BASE}data/mods.json`, { cache: 'no-cache' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);

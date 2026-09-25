@@ -115,7 +115,7 @@ const Admin = () => {
                 });
 
                 setMods(fresh);
-                showToast('Mod actualizado correctamente', 'success');
+                showToast('Mod actualizado (visible en Explorar en ~30 s)', 'success');
             } else {
                 const fresh = await api.createMod({
                     title: modData.title,
@@ -133,7 +133,7 @@ const Admin = () => {
                 });
 
                 setMods(fresh);
-                showToast('Mod publicado con éxito', 'success');
+                showToast('Mod publicado (visible en Explorar en ~30 s)', 'success');
             }
         } catch (err) {
             showToast('Error: ' + err.message, 'error');
@@ -149,7 +149,7 @@ const Admin = () => {
         try {
             const fresh = await api.deleteMod(deleteId);
             setMods(fresh);
-            showToast('Mod eliminado definitivamente', 'success');
+            showToast('Mod eliminado (visible en Explorar en ~30 s)', 'success');
         } catch (err) {
             showToast('Error al eliminar: ' + err.message, 'error');
         }
