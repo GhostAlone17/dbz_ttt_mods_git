@@ -45,6 +45,16 @@ npm run migrate  # migra Supabase → mods.json + public/images (solo lectura)
 VITE_ADMIN_PASSWORD=tu-clave-maestra   # clave maestra del panel
 ```
 
+En CI la variable sale de **Settings → Secrets and variables → Actions → New repository secret**
+(`VITE_ADMIN_PASSWORD`). Si no existe, el build usa el valor por defecto `admin123`.
+
+## Rutas del panel en producción
+
+- Login: `https://ghostalone17.github.io/dbz_ttt_mods_git/dbz-control-master`
+- Panel: `https://ghostalone17.github.io/dbz_ttt_mods_git/panel-privado-gestion`
+  (sin sesión devuelve 404; GitHub Pages responde 404 en cualquier ruta del SPA,
+  pero el contenido se carga igual y el router dibuja la página)
+
 ## Publicar desde el panel
 
 1. GitHub → Settings → Developer settings → **Personal access tokens → Fine-grained tokens**.
