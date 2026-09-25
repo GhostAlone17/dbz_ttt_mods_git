@@ -71,6 +71,7 @@ function requireToken() {
 async function github(pathOrUrl, init = {}) {
   const url = pathOrUrl.startsWith('http') ? pathOrUrl : `${API}${pathOrUrl}`;
   const res = await fetch(url, {
+    cache: 'no-store',
     ...init,
     headers: {
       Accept: 'application/vnd.github+json',
@@ -107,32 +108,39 @@ async function readDataset() {
   return { mods, sha: meta.sha };
 }
 
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function writeDataset(mods, message) {
   const ordered = [...mods].sort(
     (a, b) => new Date(b.created_at || b.date || 0) - new Date(a.created_at || a.date || 0)
   );
   const payload = JSON.stringify(ordered, null, 2) + '\n';
+  const content = toBase64(new TextEncoder().encode(payload));
+  const MAX_ATTEMPTS = 4;
 
-  let attempt = 0;
-  while (attempt < 2) {
-    attempt += 1;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    // sha fresco en cada intento (sin caché del navegador)
     const { sha } = await readDataset();
     try {
       const res = await github(`/repos/${REPO}/contents/${DATA_PATH}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message,
-          content: toBase64(new TextEncoder().encode(payload)),
-          sha,
-          branch: BRANCH,
-        }),
+        body: JSON.stringify({ message, content, sha, branch: BRANCH }),
       });
       return await res.json();
     } catch (error) {
-      if (error.status !== 409 || attempt === 2) throw error;
+      if (error.status !== 409 || attempt === MAX_ATTEMPTS) throw error;
+      await wait(400 * attempt);
     }
   }
+}
+
+// Serializa las escrituras para que dos acciones simultáneas no se pisen el sha
+let writeQueue = Promise.resolve();
+function withLock(task) {
+  const run = writeQueue.then(task, task);
+  writeQueue = run.catch(() => {});
+  return run;
 }
 
 export async function fetchMods() {
@@ -147,66 +155,72 @@ export async function fetchMods() {
   }
 }
 
-export async function createMod(input) {
-  const { mods } = await readDataset();
-  const nextId = mods.length
-    ? Math.max(...mods.map((m) => Number(m.id) || 0)) + 1
-    : 1;
-  const now = new Date();
+export function createMod(input) {
+  return withLock(async () => {
+    const { mods } = await readDataset();
+    const nextId = mods.length
+      ? Math.max(...mods.map((m) => Number(m.id) || 0)) + 1
+      : 1;
+    const now = new Date();
 
-  const mod = {
-    id: nextId,
-    created_at: now.toISOString(),
-    title: input.title,
-    description: input.description || null,
-    category: input.category || null,
-    image: toStoragePath(input.image) || null,
-    image_attack1: toStoragePath(input.image_attack1) || null,
-    image_attack2: toStoragePath(input.image_attack2) || null,
-    image_attack3: toStoragePath(input.image_attack3) || null,
-    download_link: input.download_link || null,
-    youtube_link: input.youtube_link || null,
-    date: input.date || now.toISOString().slice(0, 10),
-    version: input.version || null,
-    platform: input.platform || null,
-  };
-
-  mods.push(mod);
-  await writeDataset(mods, `feat: publicar mod "${mod.title}"`);
-}
-
-export async function updateMod(id, input) {
-  const { mods } = await readDataset();
-  const index = mods.findIndex((m) => Number(m.id) === Number(id));
-  if (index === -1) throw new Error(`No existe el mod con id ${id}`);
-
-  mods[index] = {
-    ...mods[index],
-    ...serializeMod({
+    const mod = {
+      id: nextId,
+      created_at: now.toISOString(),
       title: input.title,
       description: input.description || null,
       category: input.category || null,
-      version: input.version || null,
-      platform: input.platform || null,
-      image: input.image || null,
-      image_attack1: input.image_attack1 || null,
-      image_attack2: input.image_attack2 || null,
-      image_attack3: input.image_attack3 || null,
+      image: toStoragePath(input.image) || null,
+      image_attack1: toStoragePath(input.image_attack1) || null,
+      image_attack2: toStoragePath(input.image_attack2) || null,
+      image_attack3: toStoragePath(input.image_attack3) || null,
       download_link: input.download_link || null,
       youtube_link: input.youtube_link || null,
-    }),
-  };
+      date: input.date || now.toISOString().slice(0, 10),
+      version: input.version || null,
+      platform: input.platform || null,
+    };
 
-  await writeDataset(mods, `feat: actualizar mod "${mods[index].title}"`);
+    mods.push(mod);
+    await writeDataset(mods, `feat: publicar mod "${mod.title}"`);
+  });
 }
 
-export async function deleteMod(id) {
-  const { mods } = await readDataset();
-  const target = mods.find((m) => Number(m.id) === Number(id));
-  if (!target) throw new Error(`No existe el mod con id ${id}`);
+export function updateMod(id, input) {
+  return withLock(async () => {
+    const { mods } = await readDataset();
+    const index = mods.findIndex((m) => Number(m.id) === Number(id));
+    if (index === -1) throw new Error(`No existe el mod con id ${id}`);
 
-  const remaining = mods.filter((m) => Number(m.id) !== Number(id));
-  await writeDataset(remaining, `feat: eliminar mod "${target.title}"`);
+    mods[index] = {
+      ...mods[index],
+      ...serializeMod({
+        title: input.title,
+        description: input.description || null,
+        category: input.category || null,
+        version: input.version || null,
+        platform: input.platform || null,
+        image: input.image || null,
+        image_attack1: input.image_attack1 || null,
+        image_attack2: input.image_attack2 || null,
+        image_attack3: input.image_attack3 || null,
+        download_link: input.download_link || null,
+        youtube_link: input.youtube_link || null,
+      }),
+    };
+
+    await writeDataset(mods, `feat: actualizar mod "${mods[index].title}"`);
+  });
+}
+
+export function deleteMod(id) {
+  return withLock(async () => {
+    const { mods } = await readDataset();
+    const target = mods.find((m) => Number(m.id) === Number(id));
+    if (!target) throw new Error(`No existe el mod con id ${id}`);
+
+    const remaining = mods.filter((m) => Number(m.id) !== Number(id));
+    await writeDataset(remaining, `feat: eliminar mod "${target.title}"`);
+  });
 }
 
 async function optimizeForUpload(blob, originalName) {
