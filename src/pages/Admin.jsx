@@ -100,7 +100,7 @@ const Admin = () => {
         setLoading(true);
         try {
             if (editingMod) {
-                await api.updateMod(editingMod.id, {
+                const fresh = await api.updateMod(editingMod.id, {
                     title: modData.title,
                     description: modData.description,
                     category: modData.category,
@@ -114,9 +114,10 @@ const Admin = () => {
                     youtube_link: modData.youtube_link
                 });
 
+                setMods(fresh);
                 showToast('Mod actualizado correctamente', 'success');
             } else {
-                await api.createMod({
+                const fresh = await api.createMod({
                     title: modData.title,
                     description: modData.description,
                     category: modData.category,
@@ -131,13 +132,13 @@ const Admin = () => {
                     date: new Date().toISOString().split('T')[0]
                 });
 
+                setMods(fresh);
                 showToast('Mod publicado con éxito', 'success');
             }
         } catch (err) {
             showToast('Error: ' + err.message, 'error');
         }
 
-        await fetchMods();
         setShowForm(false);
         setEditingMod(null);
     };
@@ -146,14 +147,9 @@ const Admin = () => {
         if (!deleteId) return;
         setLoading(true);
         try {
-            // Eliminar el mod
-            await api.deleteMod(deleteId);
-
-            // Actualizar estado local inmediatamente
-            setMods(prevMods => prevMods.filter(mod => mod.id !== deleteId));
-
+            const fresh = await api.deleteMod(deleteId);
+            setMods(fresh);
             showToast('Mod eliminado definitivamente', 'success');
-            await fetchMods();
         } catch (err) {
             showToast('Error al eliminar: ' + err.message, 'error');
         }

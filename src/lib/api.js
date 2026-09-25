@@ -6,6 +6,9 @@ const DATA_PATH = 'public/data/mods.json';
 const IMAGE_FIELDS = ['image', 'image_attack1', 'image_attack2', 'image_attack3'];
 const TOKEN_KEY = 'gh_token';
 
+// Imágenes subidas en esta pestaña: se muestran al instante sin esperar al deploy
+const sessionImages = new Map();
+
 const toBase64 = (bytes) => {
   let binary = '';
   const chunk = 0x8000;
@@ -35,7 +38,10 @@ export const hasGithubToken = () => Boolean(sessionStorage.getItem(TOKEN_KEY));
 
 export const resolveImage = (value) => {
   if (!value || /^(https?:|data:|blob:)/i.test(value)) return value;
-  return `${BASE}${value.replace(/^\//, '')}`;
+  const path = value.replace(/^\//, '');
+  const local = sessionImages.get(path);
+  if (local) return local;
+  return `${BASE}${path}`;
 };
 
 export const toStoragePath = (value) => {
@@ -127,7 +133,8 @@ async function writeDataset(mods, message) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message, content, sha, branch: BRANCH }),
       });
-      return await res.json();
+      await res.json();
+      return ordered;
     } catch (error) {
       if (error.status !== 409 || attempt === MAX_ATTEMPTS) throw error;
       await wait(400 * attempt);
@@ -181,7 +188,8 @@ export function createMod(input) {
     };
 
     mods.push(mod);
-    await writeDataset(mods, `feat: publicar mod "${mod.title}"`);
+    const ordered = await writeDataset(mods, `feat: publicar mod "${mod.title}"`);
+    return ordered.map(resolveMod);
   });
 }
 
@@ -208,7 +216,8 @@ export function updateMod(id, input) {
       }),
     };
 
-    await writeDataset(mods, `feat: actualizar mod "${mods[index].title}"`);
+    const ordered = await writeDataset(mods, `feat: actualizar mod "${mods[index].title}"`);
+    return ordered.map(resolveMod);
   });
 }
 
@@ -219,7 +228,8 @@ export function deleteMod(id) {
     if (!target) throw new Error(`No existe el mod con id ${id}`);
 
     const remaining = mods.filter((m) => Number(m.id) !== Number(id));
-    await writeDataset(remaining, `feat: eliminar mod "${target.title}"`);
+    const ordered = await writeDataset(remaining, `feat: eliminar mod "${target.title}"`);
+    return ordered.map(resolveMod);
   });
 }
 
@@ -240,9 +250,22 @@ async function optimizeForUpload(blob, originalName) {
   bitmap.close();
 
   const webp = await new Promise((resolve) => canvas.toBlob(resolve, 'image/webp', 0.82));
-  const chosen = webp && webp.type === 'image/webp' ? webp : blob;
-  return { bytes: new Uint8Array(await chosen.arrayBuffer()), ext: chosen.type === 'image/webp' ? 'webp' : 'img' };
+  if (webp && webp.type === 'image/webp') {
+    return { bytes: new Uint8Array(await webp.arrayBuffer()), ext: 'webp' };
+  }
+
+  // Si el navegador no sabe hacer webp, subimos el original con su extensión real
+  const extFromName = (originalName.match(/\.([a-z0-9]{2,5})$/i) || [])[1];
+  const extFromType = (blob.type.split('/')[1] || '').replace('jpeg', 'jpg');
+  const safe = ['png', 'jpg', 'jpeg', 'avif', 'svg'];
+  const ext =
+    safe.includes((extFromName || '').toLowerCase()) ? extFromName.toLowerCase()
+      : safe.includes(extFromType) ? extFromType
+      : 'png';
+  return { bytes: new Uint8Array(await blob.arrayBuffer()), ext: ext.replace('jpeg', 'jpg') };
 }
+
+const MIME_BY_EXT = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', avif: 'image/avif', svg: 'image/svg+xml' };
 
 export async function uploadImage(blob, originalName = '') {
   const { bytes, ext } = await optimizeForUpload(blob, originalName);
@@ -264,6 +287,9 @@ export async function uploadImage(blob, originalName = '') {
     }),
   });
   await res.json();
+
+  // Preview inmediato mientras GitHub Pages termina el deploy
+  sessionImages.set(storagePath, URL.createObjectURL(new Blob([bytes], { type: MIME_BY_EXT[ext] || 'image/webp' })));
 
   return resolveImage(storagePath);
 }
