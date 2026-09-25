@@ -46,6 +46,8 @@ export const resolveImage = (value) => {
 
 export const toStoragePath = (value) => {
   if (!value) return null;
+  // Las URLs blob: solo viven en la pestaña actual: no se pueden publicar
+  if (value.startsWith('blob:')) return null;
   if (value.startsWith(BASE)) return value.slice(BASE.length);
   return value;
 };
@@ -287,19 +289,26 @@ export async function uploadImage(blob, originalName = '') {
   const name = `${slugify(originalName.replace(/\.[^.]+$/, '')) || 'imagen'}-${hash}.${ext}`;
   const storagePath = `images/${name}`;
 
-  const res = await github(`/repos/${REPO}/contents/public/${storagePath}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      message: `assets: subir imagen ${name}`,
-      content: toBase64(bytes),
-      branch: BRANCH,
-    }),
-  });
-  await res.json();
+  try {
+    const res = await github(`/repos/${REPO}/contents/public/${storagePath}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: `assets: subir imagen ${name}`,
+        content: toBase64(bytes),
+        branch: BRANCH,
+      }),
+    });
+    await res.json();
+  } catch (error) {
+    // Mismo archivo (mismo hash) ya subido: comprobamos que esté y seguimos
+    if (error.status !== 422 && error.status !== 409) throw error;
+    await github(`/repos/${REPO}/contents/public/${storagePath}?ref=${BRANCH}`);
+  }
 
-  // Preview inmediato mientras GitHub Pages termina el deploy
+  // Preview local al instante mientras GitHub Pages termina el deploy
   sessionImages.set(storagePath, URL.createObjectURL(new Blob([bytes], { type: MIME_BY_EXT[ext] || 'image/webp' })));
 
-  return resolveImage(storagePath);
+  // Siempre la URL definitiva (la preview es solo para mostrar, nunca se guarda)
+  return `${BASE}${storagePath}`;
 }
