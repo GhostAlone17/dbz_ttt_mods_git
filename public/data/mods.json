@@ -1,5 +1,21 @@
 [
   {
+    "id": 17,
+    "created_at": "2026-10-20T23:58:28.089Z",
+    "title": "Cell Forma Perfecta Kamehameha Solar Custom Attack - DBZ TTT",
+    "description": "Ataque modificado para Cell, creando un mayor impacto del Kamehameha Solar que pudo haber destruido la tierra",
+    "category": "DBZ TTT",
+    "image": "images/vlcsnap-2026-10-20-12h15m41s260-54c5cd73.webp",
+    "image_attack1": "images/vlcsnap-2026-10-20-12h14m20s194-4c8eda44.webp",
+    "image_attack2": "images/vlcsnap-2026-10-20-12h16m00s222-d29e040e.webp",
+    "image_attack3": "images/vlcsnap-2026-10-20-12h16m07s161-c6af65e2.webp",
+    "download_link": "https://www.mediafire.com/file/qknnz28rgp5bh25/Cell_Perfect_Form_Kamehameha_Solar_By_GhostAlone17.PCK1/file",
+    "youtube_link": "https://youtu.be/Orxmr-0cHtM",
+    "date": "2026-10-20",
+    "version": null,
+    "platform": "PC"
+  },
+  {
     "id": 16,
     "created_at": "2026-10-15T19:54:11.378Z",
     "title": "Goku UI Sign Custom Attacks + Mapa Legends",
